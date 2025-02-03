@@ -1,0 +1,60 @@
+// prisma/schema.prisma
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Case {
+  id        Int      @id @default(autoincrement())
+  name      String
+  image     String
+  rarity    String
+  price     Float
+  createdAt DateTime @default(now())
+  // Связь с Loot – список предметов, которые могут выпасть из этого кейса
+  loot      Loot[]
+}
+
+model Loot {
+  id          Int      @id @default(autoincrement())
+  name        String
+  image       String
+  rarity      String
+  price       Float
+  // Вероятность выпадения (например, число от 0 до 1 или процент, здесь используем процент)
+  probability Float
+  caseId      Int
+  case        Case     @relation(fields: [caseId], references: [id])
+  inventory   InventoryItem[]
+}
+
+model InventoryItem {
+  id         Int      @id @default(autoincrement())
+  acquiredAt DateTime @default(now())
+  // Связь с пользователем
+  userId     Int
+  user       User     @relation(fields: [userId], references: [id])
+  // Связь с выпавшим предметом
+  lootId     Int
+  loot       Loot     @relation(fields: [lootId], references: [id])
+}
+
+model User {
+  id         Int      @id @default(autoincrement())
+  email      String   @unique
+  username   String?  
+  password   String
+  name       String?
+  phone      String?
+  balance    Float    @default(1000.0)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  inventory  InventoryItem[]
+}
+
