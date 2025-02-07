@@ -1,11 +1,11 @@
 datasource db {
   provider = "mysql"
   url      = env("DATABASE_URL")
-  engineType      = "binary"
 }
 
 generator client {
   provider = "prisma-client-js"
+  engineType      = "binary"
 }
 
 // Пример enum для ролей (если еще не определен)
