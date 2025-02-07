@@ -8,8 +8,10 @@ export interface User {
   username?: string | null;
   name?: string | null;
   phone?: string | null;
-  isActive: boolean;
-  balance: number;
+  role: "COACH" | "PARTICIPANT";
+  firstLogin: boolean;
+  coachId?: number | null;
+  balance?: number; // если потребуется, можно добавить баланс
   createdAt: string;
   updatedAt: string;
 }

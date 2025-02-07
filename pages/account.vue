@@ -1,22 +1,28 @@
 <template>
   <div class="account-container">
     <h1>Личный кабинет</h1>
-    <div v-if="loading">
+    <div v-if="loading" class="loading">
       <p>Загрузка данных...</p>
     </div>
-    <div v-else-if="user">
-      <p><strong>Email:</strong> {{ user.email }}</p>
-      <p v-if="user.username"><strong>Username:</strong> {{ user.username }}</p>
-      <p v-if="user.name"><strong>Имя:</strong> {{ user.name }}</p>
-      <p v-if="user.phone"><strong>Телефон:</strong> {{ user.phone }}</p>
-      <p><strong>Активен:</strong> {{ user.isActive ? "Да" : "Нет" }}</p>
-      <p>
-        <strong>Дата регистрации:</strong>
-        {{ new Date(user.createdAt).toLocaleString() }}
-      </p>
+    <div v-else-if="user" class="account-card">
+      <div class="user-info">
+        <p><strong>Email:</strong> {{ user.email }}</p>
+        <p v-if="user.username">
+          <strong>Username:</strong> {{ user.username }}
+        </p>
+        <p v-if="user.name"><strong>Имя:</strong> {{ user.name }}</p>
+        <p v-if="user.role">
+          <strong>Роль:</strong>
+          {{ user.role === "COACH" ? "Тренер" : "Участник" }}
+        </p>
+        <p>
+          <strong>Дата регистрации:</strong>
+          {{ new Date(user.createdAt).toLocaleString() }}
+        </p>
+      </div>
       <button @click="handleLogout" class="logout-btn">Выйти</button>
     </div>
-    <div v-else>
+    <div v-else class="guest">
       <p>
         Пользователь не аутентифицирован.
         <NuxtLink to="/login">Войдите</NuxtLink> или
@@ -30,51 +36,131 @@
 <script setup lang="ts">
 import { onMounted } from "vue";
 import { useRouter } from "#imports";
+import { useUser } from "~/composables/useUser";
 
 const { user, loading, error, fetchUser } = useUser();
 const router = useRouter();
 
 function handleLogout() {
   localStorage.removeItem("token");
-  // Обновляем данные пользователя после выхода
   user.value = null;
   router.push("/login");
 }
+
+onMounted(() => {
+  fetchUser();
+});
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .account-container {
   max-width: 600px;
-  margin: 0 auto;
+  margin: 40px auto;
   padding: 20px;
+  font-family: "Roboto", sans-serif;
+  color: var(--pl-text);
+
+  h1 {
+    text-align: center;
+    margin-bottom: 20px;
+    font-size: 2rem;
+    color: var(--pl-primary);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .loading {
+    text-align: center;
+    font-size: 1.2rem;
+  }
+
+  .account-card {
+    background: var(--pl-background);
+    border: 1px solid var(--pl-border);
+    border-radius: 12px;
+    box-shadow: 0 4px 8px var(--pl-box-shadow);
+    padding: 20px;
+    transition: box-shadow 0.3s ease;
+
+    &:hover {
+      box-shadow: 0 6px 12px var(--pl-box-shadow-hover);
+    }
+
+    .user-info {
+      p {
+        font-size: 1rem;
+        margin: 8px 0;
+        strong {
+          font-weight: 600;
+          margin-right: 5px;
+        }
+      }
+    }
+
+    .logout-btn {
+      display: block;
+      width: 100%;
+      margin-top: 20px;
+      padding: 12px;
+      font-size: 1rem;
+      background-color: var(--pl-accent);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+
+      &:hover {
+        background-color: var(--pl-accent-hover);
+      }
+    }
+  }
+
+  .guest {
+    text-align: center;
+    font-size: 1.2rem;
+
+    a {
+      color: var(--pl-link);
+      font-weight: bold;
+      text-decoration: none;
+      transition: color 0.3s;
+
+      &:hover {
+        color: var(--pl-link-hover);
+      }
+    }
+  }
+
+  .error {
+    color: var(--pl-accent);
+    text-align: center;
+    margin-top: 20px;
+    font-weight: bold;
+  }
 }
 
-.account-container h1 {
-  text-align: center;
-  margin-bottom: 20px;
-}
+/* Адаптив для мобильных устройств */
+@media (max-width: 600px) {
+  .account-container {
+    padding: 15px;
 
-.account-container p {
-  font-size: 16px;
-  line-height: 1.5;
-}
+    h1 {
+      font-size: 1.8rem;
+    }
 
-.logout-btn {
-  margin-top: 20px;
-  padding: 10px 20px;
-  background-color: #e74c3c;
-  color: #fff;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
+    .account-card {
+      padding: 15px;
 
-.logout-btn:hover {
-  background-color: #c0392b;
-}
+      .user-info p {
+        font-size: 0.9rem;
+      }
 
-.error {
-  color: red;
-  margin-top: 10px;
+      .logout-btn {
+        padding: 10px;
+        font-size: 0.9rem;
+      }
+    }
+  }
 }
 </style>

@@ -34,11 +34,17 @@ export default defineEventHandler(async (event) => {
         password: hashedPassword,
         name,
         phone,
+        role: "COACH",
+        firstLogin: true,
       },
     });
-    const token = jwt.sign({ id: newUser.id, email: newUser.email }, secret, {
-      expiresIn: "1h",
-    });
+    const token = jwt.sign(
+      { id: newUser.id, email: newUser.email, role: "COACH" },
+      secret,
+      {
+        expiresIn: "1h",
+      }
+    );
     return { token, newUser };
   } catch (error) {
     return { error: "Ошибка при регистрации пользователя", details: error };

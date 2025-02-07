@@ -26,8 +26,13 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    // Проверка токена
-    const decoded = jwt.verify(token, secret) as { id: number; email: string };
+    // Проверка токена. Теперь тип включает поле role.
+    const decoded = jwt.verify(token, secret) as {
+      id: number;
+      email: string;
+      role: string;
+    };
+
     // Поиск пользователя по id
     const user = await prisma.user.findUnique({ where: { id: decoded.id } });
     if (!user) {

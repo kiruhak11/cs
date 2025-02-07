@@ -1,5 +1,3 @@
-// prisma/schema.prisma
-
 datasource db {
   provider = "mysql"
   url      = env("DATABASE_URL")
@@ -9,52 +7,101 @@ generator client {
   provider = "prisma-client-js"
 }
 
-model Case {
-  id        Int      @id @default(autoincrement())
-  name      String
-  image     String
-  rarity    String
-  price     Float
-  createdAt DateTime @default(now())
-  // Связь с Loot – список предметов, которые могут выпасть из этого кейса
-  loot      Loot[]
-}
-
-model Loot {
-  id          Int      @id @default(autoincrement())
-  name        String
-  image       String
-  rarity      String
-  price       Float
-  // Вероятность выпадения (например, число от 0 до 1 или процент, здесь используем процент)
-  probability Float
-  caseId      Int
-  case        Case     @relation(fields: [caseId], references: [id])
-  inventory   InventoryItem[]
-}
-
-model InventoryItem {
-  id         Int      @id @default(autoincrement())
-  acquiredAt DateTime @default(now())
-  // Связь с пользователем
-  userId     Int
-  user       User     @relation(fields: [userId], references: [id])
-  // Связь с выпавшим предметом
-  lootId     Int
-  loot       Loot     @relation(fields: [lootId], references: [id])
+// Пример enum для ролей (если еще не определен)
+enum Role {
+  COACH
+  PARTICIPANT
 }
 
 model User {
-  id         Int      @id @default(autoincrement())
-  email      String   @unique
-  username   String?  
+  id         Int     @id @default(autoincrement())
+  email      String  @unique
+  username   String?
   password   String
   name       String?
   phone      String?
-  balance    Float    @default(1000.0)
-  isActive   Boolean  @default(true)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  inventory  InventoryItem[]
+  role       Role    @default(PARTICIPANT)
+  firstLogin Boolean @default(true)
+  coachId    Int?
+
+  // Если пользователь является участником, он может иметь тренера:
+  coach        User?  @relation("CoachParticipants", fields: [coachId], references: [id])
+  // Обратная сторона для тренера — список участников
+  participants User[] @relation("CoachParticipants")
+
+  // Обратная сторона для групп, которые создал тренер
+  coachGroups ParticipantGroup[] @relation("CoachGroups")
+  // Обратная сторона для групп, в которых участвует пользователь
+  groups      ParticipantGroup[] @relation("GroupParticipants")
+
+  // Если пользователь-тренер, он может создавать тренировочные планы
+  trainingPlans TrainingPlan[]
+
+  // Достижения участника
+  achievements Achievement[]
+
+  createdAt              DateTime                 @default(now())
+  updatedAt              DateTime                 @updatedAt
+  TrainingPlanAssignment TrainingPlanAssignment[]
 }
 
+model ParticipantGroup {
+  id            Int            @id @default(autoincrement())
+  name          String
+  coachId       Int
+  // Отношение к тренеру с именем связи "CoachGroups"
+  coach         User           @relation("CoachGroups", fields: [coachId], references: [id])
+  // Список участников группы; обратная сторона для связи "GroupParticipants" добавляется в модели User
+  participants  User[]         @relation("GroupParticipants")
+  // Группа может иметь несколько тренировочных планов
+  trainingPlans TrainingPlan[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model TrainingPlan {
+  id          Int                      @id @default(autoincrement())
+  dayOfWeek   String
+  details     String
+  coachId     Int
+  coach       User                     @relation(fields: [coachId], references: [id])
+  groupId     Int?
+  group       ParticipantGroup?        @relation(fields: [groupId], references: [id])
+  active      Boolean                  @default(true)
+  plannedFor  DateTime
+  // Новое поле для упражнений: отношение один ко многим
+  exercises   TrainingPlanExercise[]
+  assignments TrainingPlanAssignment[]
+  createdAt   DateTime                 @default(now())
+  updatedAt   DateTime                 @updatedAt
+}
+
+model TrainingPlanExercise {
+  id             Int          @id @default(autoincrement())
+  trainingPlanId Int
+  trainingPlan   TrainingPlan @relation(fields: [trainingPlanId], references: [id])
+  load           String
+  exercise       String
+  createdAt      DateTime     @default(now())
+}
+
+model TrainingPlanAssignment {
+  trainingPlanId Int
+  participantId  Int
+  // Связь с планом; обратная сторона добавлена в модели TrainingPlan через поле assignments
+  trainingPlan   TrainingPlan @relation(fields: [trainingPlanId], references: [id])
+  // Связь с участником; обратная сторона уже определена в модели User (participants или через CoachParticipants, если нужно)
+  participant    User         @relation(fields: [participantId], references: [id])
+
+  @@id([trainingPlanId, participantId])
+}
+
+model Achievement {
+  id            Int      @id @default(autoincrement())
+  date          DateTime
+  performance   Float?
+  notes         String?
+  participantId Int
+  participant   User     @relation(fields: [participantId], references: [id])
+  createdAt     DateTime @default(now())
+}

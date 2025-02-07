@@ -1,27 +1,30 @@
 <template>
   <div class="auth-container">
-    <h1>Регистрация</h1>
-    <form @submit.prevent="handleRegister">
-      <label for="email">Email:</label>
-      <input id="email" type="email" v-model="form.email" required />
-
-      <label for="username">Username:</label>
-      <input id="username" type="text" v-model="form.username" />
-
-      <label for="password">Пароль:</label>
-      <input id="password" type="password" v-model="form.password" required />
-
-      <label for="name">Имя:</label>
-      <input id="name" type="text" v-model="form.name" />
-
-      <label for="phone">Телефон:</label>
-      <input id="phone" type="text" v-model="form.phone" />
-
-      <button type="submit">Зарегистрироваться</button>
-    </form>
-
-    <div v-if="error" class="error">{{ error }}</div>
-    <div v-if="success" class="success">Регистрация прошла успешно</div>
+    <div class="card">
+      <h1 class="title">Регистрация тренера</h1>
+      <form @submit.prevent="handleRegister" class="form">
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input id="email" type="email" v-model="form.email" required />
+        </div>
+        <div class="form-group">
+          <label for="password">Пароль</label>
+          <input
+            id="password"
+            type="password"
+            v-model="form.password"
+            required
+          />
+        </div>
+        <div class="form-group">
+          <label for="name">Имя</label>
+          <input id="name" type="text" v-model="form.name" required />
+        </div>
+        <button type="submit" class="btn submit-btn">Зарегистрироваться</button>
+      </form>
+      <div v-if="success" class="success">Регистрация прошла успешно</div>
+      <div v-if="error" class="error">{{ error }}</div>
+    </div>
   </div>
 </template>
 
@@ -29,21 +32,18 @@
 import { ref } from "vue";
 import { useRouter } from "vue-router";
 
-const router = useRouter();
 interface RegisterForm {
   email: string;
-  username: string;
   password: string;
   name: string;
-  phone: string;
 }
+
+const router = useRouter();
 
 const form = ref<RegisterForm>({
   email: "",
-  username: "",
   password: "",
   name: "",
-  phone: "",
 });
 
 const error = ref("");
@@ -52,7 +52,6 @@ const success = ref(false);
 async function handleRegister() {
   error.value = "";
   success.value = false;
-
   try {
     const response = await $fetch("/api/auth/register", {
       method: "POST",
@@ -73,40 +72,123 @@ async function handleRegister() {
 }
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .auth-container {
-  max-width: 400px;
-  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 50vh;
+  background-color: var(--pl-background);
   padding: 20px;
 }
 
-.auth-container form {
+.card {
+  background: var(--pl-background);
+  border-radius: 12px;
+  box-shadow: 0 4px 12px var(--pl-box-shadow);
+  max-width: 400px;
+  width: 100%;
+  padding: 30px;
+  text-align: center;
+  transition: box-shadow 0.3s ease;
+
+  &:hover {
+    box-shadow: 0 6px 12px var(--pl-box-shadow-hover);
+  }
+}
+
+.title {
+  font-size: 2rem;
+  margin-bottom: 20px;
+  color: var(--pl-primary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.form {
   display: flex;
   flex-direction: column;
+  gap: 15px;
+  text-align: left;
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+
+    label {
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin-bottom: 5px;
+      color: var(--pl-text);
+    }
+
+    input {
+      padding: 10px;
+      font-size: 1rem;
+      border: 1px solid var(--pl-border);
+      border-radius: 6px;
+      transition: border-color 0.3s ease;
+
+      &:focus {
+        border-color: var(--pl-primary);
+        outline: none;
+      }
+    }
+  }
 }
 
-.auth-container label {
-  margin-top: 10px;
+.btn {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  font-size: 1rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
 }
 
-.auth-container input {
-  padding: 8px;
-  font-size: 14px;
-}
+.submit-btn {
+  background-color: var(--pl-primary);
+  color: #fff;
 
-.auth-container button {
-  margin-top: 20px;
-  padding: 10px;
-  font-size: 16px;
-}
-
-.error {
-  color: red;
-  margin-top: 10px;
+  &:hover {
+    background-color: var(--pl-primary-hover);
+  }
 }
 
 .success {
-  color: green;
-  margin-top: 10px;
+  margin-top: 20px;
+  color: var(--pl-primary);
+  font-weight: bold;
+  text-align: center;
+}
+
+.error {
+  margin-top: 20px;
+  color: var(--pl-accent);
+  font-weight: bold;
+  text-align: center;
+}
+
+/* Адаптив для мобильных устройств */
+@media (max-width: 600px) {
+  .card {
+    padding: 20px;
+  }
+
+  .title {
+    font-size: 1.8rem;
+  }
+
+  .form-group input {
+    padding: 8px;
+    font-size: 0.9rem;
+  }
+
+  .submit-btn {
+    padding: 10px;
+    font-size: 0.9rem;
+  }
 }
 </style>

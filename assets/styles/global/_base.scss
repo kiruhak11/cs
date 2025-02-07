@@ -1,0 +1,30 @@
+.container {
+  width: 100%;
+  max-width: 1290px;
+  margin: 0 auto;
+}
+
+.no-scroll {
+  overflow: hidden;
+}
+
+body {
+  background-color: var(--pl-background);
+}
+
+* {
+  font-family: "Ubuntu";
+}
+body {
+  background-color: var(--pl-background);
+  color: var(--pl-text);
+  font-family: "Roboto", sans-serif;
+}
+
+a {
+  color: var(--pl-link);
+  text-decoration: none;
+  &:hover {
+    color: var(--pl-link-hover);
+  }
+}
