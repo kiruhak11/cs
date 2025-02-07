@@ -1,2 +1,0 @@
--- AlterTable
-ALTER TABLE `trainingplan` ADD COLUMN `plannedFor` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3);
