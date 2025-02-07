@@ -1,15 +1,15 @@
 services:
-  dev-horizon-node:
+  site-node:
     container_name: site-node
     build:
       context: .
       dockerfile: ./DOCKERFILE
-    image: dev-horizon-node
+    image: site-node
     restart: always
     ports:
       - "${PORT:-3000}:3000"
     environment:
-      DATABASE_URL: "mysql://user:password@db/mysql"
+      DATABASE_URL: "mysql://user:password@db/cs"
     depends_on:
       - db
     networks:
