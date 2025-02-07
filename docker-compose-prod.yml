@@ -1,13 +1,13 @@
 services:
   dev-horizon-node:
-    container_name: dev-horizon-node
+    container_name: site-node
     build:
       context: .
       dockerfile: ./DOCKERFILE
     image: dev-horizon-node
     restart: always
     ports:
-      - "${PORT:-3001}:3000"
+      - "${PORT:-3001}:3001"
     environment:
       DATABASE_URL: "mysql://user:password@db/cs"
     depends_on:
@@ -16,7 +16,7 @@ services:
       - app-network
   db:
     image: mysql:8.0
-    container_name: dev-horizon-mysql
+    container_name: site-mysql
     environment:
       MYSQL_ROOT_PASSWORD: rootpassword
       MYSQL_DATABASE: cs
