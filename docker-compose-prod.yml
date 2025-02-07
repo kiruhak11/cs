@@ -7,7 +7,7 @@ services:
     image: dev-horizon-node
     restart: always
     ports:
-      - "${PORT:-3000}:3000"
+      - "${PORT:-3001}:3000"
     environment:
       DATABASE_URL: "mysql://user:password@db/cs"
     depends_on:
