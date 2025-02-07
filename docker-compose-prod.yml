@@ -33,3 +33,11 @@ volumes:
 networks:
   app-network:
     driver: bridge
+
+migrate:
+  image: your-app-image
+  command: npx prisma migrate deploy
+  environment:
+    - DATABASE_URL=mysql://user:password@db:3306/cs
+  depends_on:
+    - db
