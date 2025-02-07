@@ -9,7 +9,7 @@ services:
     ports:
       - "${PORT:-3000}:3000"
     environment:
-      DATABASE_URL: "mysql://user:password@db/cs"
+      DATABASE_URL: "mysql://user:password@db/mysql"
     depends_on:
       - db
     networks:
