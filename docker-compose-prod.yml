@@ -3,13 +3,13 @@ services:
     container_name: dev-horizon-node
     build:
       context: .
-      dockerfile: ./Dockerfile
+      dockerfile: ./DOCKERFILE
     image: dev-horizon-node
     restart: always
     ports:
       - "${PORT:-3000}:3000"
     environment:
-      DATABASE_URL: "mysql://user:password@db/cs" 
+      DATABASE_URL: "mysql://user:password@db/cs"
     depends_on:
       - db
     networks:
