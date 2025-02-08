@@ -71,7 +71,7 @@ async function copyCredentials() {
     const textToCopy = `Логин: ${credentials.value.username}@login.com\nПароль: ${credentials.value.password}`;
     try {
       await navigator.clipboard.writeText(textToCopy);
-      alert("Учётные данные скопированы в буфер обмена");
+      openModal("Успех", `Учётные данные скопированы в буфер обмена пользователя ${form.value.name}`);
     } catch (err) {
       alert("Не удалось скопировать данные");
     }

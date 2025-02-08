@@ -30,10 +30,7 @@ export default defineEventHandler(async (event) => {
   // Генерируем JWT-токен (в данном примере срок действия 1 час)
   const token = jwt.sign(
     { id: user.id, email: user.email, role: user.role },
-    secret,
-    {
-      expiresIn: "1h",
-    }
+    secret
   );
 
   // Можно вернуть только необходимые данные о пользователе

@@ -70,7 +70,6 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from "vue";
-import { useUser } from "~/composables/useUser";
 import { useRouter } from "#imports";
 
 interface Exercise {

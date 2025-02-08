@@ -13,7 +13,17 @@
           </h2>
           <p class="participant-email">{{ participant.email }}</p>
         </div>
-        <button class="delete-btn" @click="deleteParticipant(participant.id)">
+        <button
+          class="delete-btn"
+          @click="
+            openModal(
+              `Удалить участника`,
+              `Вы действительно хотите удалить этого участника?`,
+              `Удалить`,
+              () => deleteParticipant(participant.id)
+            )
+          "
+        >
           Удалить
         </button>
       </div>
@@ -23,6 +33,11 @@
     </div>
     <div v-if="error" class="error-message">{{ error }}</div>
     <div v-if="message" class="success-message">{{ message }}</div>
+    <div>
+      <NuxtLink to="/coach/create-participant" class="btn"
+        >Создать участника</NuxtLink
+      >
+    </div>
   </div>
 </template>
 
@@ -63,8 +78,6 @@ async function deleteParticipant(participantId: number) {
     router.push("/login");
     return;
   }
-  if (!window.confirm("Вы действительно хотите удалить этого участника?"))
-    return;
   try {
     await $fetch(`/api/coach/participants/${participantId}`, {
       method: "DELETE",
@@ -83,6 +96,20 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
+.btn {
+  display: flex;
+  justify-content: center;
+  margin: 20px auto;
+  padding: 10px 20px;
+  background-color: var(--pl-primary);
+  color: var(--pl-background);
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
 .coach-participants {
   max-width: 1200px;
   margin: 0 auto;

@@ -15,6 +15,9 @@
       <p>Группы не найдены</p>
     </div>
     <div v-if="error" class="error">{{ error }}</div>
+    <div>
+      <NuxtLink to="/coach/create-group" class="btn">Создать группу</NuxtLink>
+    </div>
   </div>
 </template>
 
@@ -53,6 +56,24 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
+.btn {
+  display: flex;
+  justify-content: center;
+  margin: 20px auto;
+  padding: 10px 20px;
+  background-color: var(--pl-primary);
+  color: var(--pl-background);
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+
+  &:hover {
+    background-color: var(--pl-primary-hover);
+  }
+}
 .coach-groups {
   max-width: 1200px;
   margin: 0 auto;

@@ -40,10 +40,7 @@ export default defineEventHandler(async (event) => {
     });
     const token = jwt.sign(
       { id: newUser.id, email: newUser.email, role: "COACH" },
-      secret,
-      {
-        expiresIn: "1h",
-      }
+      secret
     );
     return { token, newUser };
   } catch (error) {

@@ -1,7 +1,7 @@
 // composables/useUser.ts
 import { ref } from "vue";
 import { useRouter } from "#imports";
-
+import Modal from "../components/MyModal.vue";
 export interface User {
   id: number;
   email: string;
@@ -19,6 +19,25 @@ export interface User {
 const user = ref<User | null>(null);
 const loading = ref(false);
 const error = ref("");
+
+export function openModal(
+  modalTitle: string,
+  modalText: string,
+  modalButtonText?: string,
+  onButtonClick?: () => void
+) {
+  const [setModal] = useFrogModal({
+    closeOnOverlayClick: false,
+    closeOnEsc: false,
+  });
+  console.log("Opening modal");
+  setModal(Modal, {
+    modalTitle: modalTitle,
+    modalText: modalText,
+    modalButtonText: modalButtonText,
+    onButtonClick: onButtonClick || (() => {}),
+  });
+}
 
 export function useUser() {
   const router = useRouter();

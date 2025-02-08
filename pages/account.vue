@@ -15,6 +15,9 @@
           <strong>Роль:</strong>
           {{ user.role === "COACH" ? "Тренер" : "Участник" }}
         </p>
+        <p v-if="user.role === 'PARTICIPANT'">
+          <strong>Тренер:</strong> {{ coachName() }}
+        </p>
         <p>
           <strong>Дата регистрации:</strong>
           {{ new Date(user.createdAt).toLocaleString() }}
@@ -34,12 +37,34 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted } from "vue";
-import { useRouter } from "#imports";
+import { onMounted, ref } from "vue";
+import { useRouter } from "vue-router";
 import { useUser } from "~/composables/useUser";
 
 const { user, loading, error, fetchUser } = useUser();
 const router = useRouter();
+
+// Реф для данных тренера
+const coach = ref<{ id: number; name: string } | null>(null);
+
+async function fetchCoach() {
+  if (user.value && user.value.coachId) {
+    const token = localStorage.getItem("token");
+    try {
+      // Предполагаем, что API для получения тренера по ID доступен по маршруту /api/coach/[id]
+      const data = await $fetch(`/api/coach/${user.value.coachId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      coach.value = data as { id: number; name: string };
+    } catch (e) {
+      console.error("Ошибка загрузки тренера:", e);
+    }
+  }
+}
+
+function coachName(): string {
+  return coach.value?.name || "Не указан";
+}
 
 function handleLogout() {
   localStorage.removeItem("token");
@@ -47,8 +72,12 @@ function handleLogout() {
   router.push("/login");
 }
 
-onMounted(() => {
-  fetchUser();
+onMounted(async () => {
+  await fetchUser();
+  // Если пользователь-участник, пытаемся получить данные тренера
+  if (user.value && user.value.role === "PARTICIPANT" && user.value.coachId) {
+    await fetchCoach();
+  }
 });
 </script>
 

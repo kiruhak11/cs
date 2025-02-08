@@ -19,10 +19,6 @@
           class="multiselect"
         />
       </div>
-      <div class="form-field plan-option">
-        <input type="checkbox" id="nextWeek" v-model="form.planForNextWeek" />
-        <label for="nextWeek">Создать план для следующей недели</label>
-      </div>
       <button type="submit" class="submit-btn">Создать группу</button>
     </form>
     <div v-if="message" class="message">{{ message }}</div>

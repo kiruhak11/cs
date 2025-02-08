@@ -1,6 +1,22 @@
 <template>
   <div class="add-participants">
     <h1 class="page-title">Добавить участников в группу "{{ group?.name }}"</h1>
+    <!-- Кнопка для удаления группы -->
+    <div class="group-actions">
+      <button
+        class="delete-group-btn"
+        @click="
+          openModal(
+            'Удалить группу',
+            'Вы действительно хотите удалить эту группу?',
+            'Удалить',
+            () => deleteGroup()
+          )
+        "
+      >
+        Удалить группу
+      </button>
+    </div>
 
     <!-- Текущий список участников группы -->
     <div v-if="groupParticipants.length" class="participants-list">
@@ -17,7 +33,17 @@
             }}</span>
             <span class="participant-email">{{ participant.email }}</span>
           </div>
-          <button class="delete-btn" @click="removeParticipant(participant.id)">
+          <button
+            class="delete-btn"
+            @click="
+              openModal(
+                'Удалить участника',
+                'Вы действительно хотите удалить этого участника?',
+                'Удалить',
+                () => removeParticipant(participant.id)
+              )
+            "
+          >
             Удалить
           </button>
         </li>
@@ -167,9 +193,6 @@ async function removeParticipant(participantId: number) {
     router.push("/login");
     return;
   }
-  if (!window.confirm("Вы действительно хотите удалить участника из группы?")) {
-    return;
-  }
   try {
     await $fetch(`/api/coach/group/${route.params.id}/remove-participant`, {
       method: "POST",
@@ -183,6 +206,32 @@ async function removeParticipant(participantId: number) {
     await fetchGroupParticipants();
   } catch (err) {
     error.value = "Ошибка при удалении участника";
+  }
+}
+
+async function deleteGroup() {
+  message.value = "";
+  error.value = "";
+  const token = localStorage.getItem("token");
+  if (!token) {
+    router.push("/login");
+    return;
+  }
+  try {
+    await $fetch(`/api/coach/group/${route.params.id}/delete`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+    message.value = "Группа успешно удалена";
+    console.log("Группа удалена");
+    // После удаления перенаправляем на список групп
+    router.push("/coach/groups");
+  } catch (err) {
+    console.error("Ошибка при удалении группы:", err);
+    error.value = "Ошибка при удалении группы";
   }
 }
 
@@ -211,6 +260,23 @@ onMounted(() => {
     color: var(--pl-primary);
     text-transform: uppercase;
     letter-spacing: 1.2px;
+  }
+
+  .group-actions {
+    text-align: center;
+    margin-bottom: 20px;
+    .delete-group-btn {
+      background-color: var(--pl-accent);
+      color: #fff;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+      &:hover {
+        background-color: var(--pl-accent-hover);
+      }
+    }
   }
 
   .participants-list {
@@ -261,7 +327,6 @@ onMounted(() => {
           border-radius: 4px;
           cursor: pointer;
           transition: background-color 0.3s ease;
-
           &:hover {
             background-color: var(--pl-accent-hover);
           }
@@ -272,11 +337,9 @@ onMounted(() => {
 
   .add-form {
     margin-top: 20px;
-
     .multiselect {
       margin-bottom: 10px;
     }
-
     .add-btn {
       background-color: var(--pl-primary);
       color: #fff;
@@ -285,7 +348,6 @@ onMounted(() => {
       border-radius: 4px;
       cursor: pointer;
       transition: background-color 0.3s ease;
-
       &:hover {
         background-color: var(--pl-primary-hover);
       }
@@ -318,11 +380,9 @@ onMounted(() => {
       h2 {
         font-size: 1.3rem;
       }
-
       .participant-item {
         flex-direction: column;
         align-items: flex-start;
-
         .delete-btn {
           align-self: flex-end;
           margin-top: 10px;

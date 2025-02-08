@@ -1,5 +1,6 @@
 <template>
   <div>
+    <FrogModal />
     <NuxtLayout />
   </div>
 </template>

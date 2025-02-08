@@ -3,8 +3,10 @@
     <h1>Добро пожаловать, тренер {{ user.name || user.email }}</h1>
     <div class="stats">
       <div class="stat-card" v-for="(stat, index) in stats" :key="index">
+        <div @click="stat.title==='Групп' ? router.push('/coach/groups') : stat.title==='Участников' ? router.push('/coach/participants') : router.push('/coach/plans')">
         <h2>{{ stat.title }}</h2>
         <p>{{ stat.value }}</p>
+        </div>
       </div>
     </div>
     <div class="actions">

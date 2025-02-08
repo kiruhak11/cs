@@ -23,14 +23,17 @@
           <div class="line"></div>
           <div class="logo">
             <div class="logo__text">
-              <NuxtLink to="/">
+              <NuxtLink class="text" to="/">
                 <h1>Главная</h1>
               </NuxtLink>
+              <Switcher class="Switcher" />
             </div>
           </div>
           <div class="line"></div>
           <ul v-if="useUser().user?.value?.role === 'COACH'">
-            <li><NuxtLink to="/">Главная</NuxtLink></li>
+            <li>
+              <NuxtLink class="link" to="/">Главная</NuxtLink>
+            </li>
             <li><NuxtLink to="/coach/dashboard">Панель тренера</NuxtLink></li>
             <li>
               <NuxtLink to="/coach/create-training-plan">Создать план</NuxtLink>
@@ -54,7 +57,6 @@
             <li><NuxtLink to="/login">Вход</NuxtLink></li>
             <li><NuxtLink to="/register">Регистрация тренера</NuxtLink></li>
           </ul>
-          <Switcher />
         </div>
       </ul>
     </nav>
@@ -137,12 +139,21 @@ onBeforeUnmount(() => {
       margin: 0;
       display: flex;
       flex-direction: column;
-      align-items: center;
     }
 
     li {
-      margin: 16px 0;
       font-size: 32px;
+      height: 100%;
+      width: 100%;
+      border-radius: 10px;
+      a {
+        display: flex;
+        justify-content: center;
+        text-align: center;
+        width: 100%;
+        height: 100%;
+        padding: 16px;
+      }
     }
   }
 }
@@ -155,7 +166,20 @@ onBeforeUnmount(() => {
 .logo {
   display: flex;
   align-items: center;
-
+  width: 100%;
+  &__text {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+    .text {
+      display: flex;
+      align-items: center;
+      justify-self: self-start;
+    }
+    .Switcher {
+      justify-self: self-end;
+    }
+  }
   h1 {
     color: var(--pl-text);
     transition: color 0.3s;
