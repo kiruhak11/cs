@@ -1,3 +1,4 @@
+// server/api/coach/training-plans.get.ts
 import { PrismaClient } from "@prisma/client";
 import jwt from "jsonwebtoken";
 
@@ -40,9 +41,28 @@ export default defineEventHandler(async (event) => {
   try {
     const plans = await prisma.trainingPlan.findMany({
       where: { coachId },
-      include: { group: true },
+      include: {
+        group: true,
+        exercises: true,
+        assignments: {
+          select: {
+            participant: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+          },
+        },
+      },
     });
-    return plans;
+    // Преобразуем assignments в participantAssignments для удобства на клиенте
+    const formattedPlans = plans.map((plan) => ({
+      ...plan,
+      participantAssignments: plan.assignments.map((a) => a.participant),
+    }));
+    return formattedPlans;
   } catch (error) {
     throw createError({
       statusCode: 500,

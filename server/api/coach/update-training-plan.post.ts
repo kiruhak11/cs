@@ -1,20 +1,16 @@
-// server/api/coach/update-training-plan.post.ts
 import { PrismaClient } from "@prisma/client";
 import jwt from "jsonwebtoken";
 
 const prisma = new PrismaClient();
 const secret = process.env.JWT_SECRET || "supersecret";
 
-// Функция для вычисления новой даты plannedFor на основе дня недели и типа недели
 function computePlannedFor(dayOfWeek: string, weekType: string): Date {
   const now = new Date();
-  // Определяем начало текущей недели (с понедельника)
-  const currentDay = now.getDay(); // 0 - воскресенье, 1 - понедельник и т.д.
+  const currentDay = now.getDay();
   const diffToMonday = currentDay === 0 ? -6 : 1 - currentDay;
   const mondayThisWeek = new Date(now);
   mondayThisWeek.setDate(now.getDate() + diffToMonday);
   mondayThisWeek.setHours(0, 0, 0, 0);
-
   let targetMonday: Date;
   if (weekType === "current") {
     targetMonday = mondayThisWeek;
@@ -22,10 +18,8 @@ function computePlannedFor(dayOfWeek: string, weekType: string): Date {
     targetMonday = new Date(mondayThisWeek);
     targetMonday.setDate(targetMonday.getDate() + 7);
   } else {
-    targetMonday = mondayThisWeek; // По умолчанию текущая неделя
+    targetMonday = mondayThisWeek;
   }
-
-  // Сопоставляем день недели с числовым смещением (Понедельник = 0, Вторник = 1, и т.д.)
   const dayOffsets: Record<string, number> = {
     Monday: 0,
     Tuesday: 1,
@@ -42,7 +36,7 @@ function computePlannedFor(dayOfWeek: string, weekType: string): Date {
 }
 
 export default defineEventHandler(async (event) => {
-  // Проверка заголовка авторизации
+  // Проверка авторизации
   const authHeader = getHeader(event, "authorization");
   if (!authHeader) {
     throw createError({
@@ -75,9 +69,9 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  // Чтение данных из тела запроса
   const body = await readBody(event);
-  const { planId, dayOfWeek, groupId, exercises, weekType } = body;
+  const { planId, dayOfWeek, groupId, exercises, weekType, participantIds } =
+    body;
   if (!planId || !dayOfWeek || !weekType) {
     throw createError({
       statusCode: 400,
@@ -85,8 +79,15 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  // Вычисляем новую дату plannedFor
   const newPlannedFor = computePlannedFor(dayOfWeek, weekType);
+  console.log("Обновляем план:", {
+    planId,
+    dayOfWeek,
+    groupId,
+    weekType,
+    participantIds,
+    newPlannedFor,
+  });
 
   try {
     // Обновляем тренировочный план
@@ -99,12 +100,10 @@ export default defineEventHandler(async (event) => {
       },
     });
 
-    // Удаляем все существующие упражнения для этого плана
+    // Обновляем упражнения: удаляем старые и создаём новые
     await prisma.trainingPlanExercise.deleteMany({
       where: { trainingPlanId: planId },
     });
-
-    // Если передан массив упражнений, создаём новые записи
     if (exercises && Array.isArray(exercises) && exercises.length > 0) {
       const exercisesData = exercises.map((ex: any) => ({
         trainingPlanId: planId,
@@ -114,6 +113,27 @@ export default defineEventHandler(async (event) => {
       await prisma.trainingPlanExercise.createMany({
         data: exercisesData,
       });
+    }
+
+    // Обновляем индивидуальные назначения
+    await prisma.trainingPlanAssignment.deleteMany({
+      where: { trainingPlanId: planId },
+    });
+    if (participantIds && Array.isArray(participantIds)) {
+      const numericIds = participantIds
+        .map((pid: any) =>
+          typeof pid === "object" ? Number(pid.id) : Number(pid)
+        )
+        .filter((id: number) => !isNaN(id));
+      if (numericIds.length > 0) {
+        const assignmentsData = numericIds.map((pid: number) => ({
+          trainingPlanId: planId,
+          participantId: pid,
+        }));
+        await prisma.trainingPlanAssignment.createMany({
+          data: assignmentsData,
+        });
+      }
     }
 
     return { message: "План успешно обновлен" };

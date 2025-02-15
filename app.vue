@@ -10,7 +10,7 @@ const { user, loading, error, fetchUser } = useUser();
 
 useSeoMeta({
   titleTemplate: (title) =>
-    title ? `${title} | Personal Trainer` : "Personal Trainer",
+    title ? `${title} | Палн тренировок` : "План тренировок",
 });
 
 onMounted(() => {

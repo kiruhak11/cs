@@ -41,6 +41,39 @@
               {{ plan.group ? plan.group.name : "-" }}
             </template>
           </p>
+          <p class="plan-participants">
+            <strong>Индивидуальные участники:</strong>
+            <template v-if="editing[plan.id]?.isEditing">
+              <Multiselect
+                v-model="editing[plan.id].participantIds"
+                :options="filteredParticipants(plan.id)"
+                :multiple="true"
+                track-by="id"
+                label="name"
+                placeholder="Выберите участников"
+                class="custom-multiselect"
+              />
+            </template>
+            <template v-else>
+              <span
+                v-if="
+                  plan.participantAssignments &&
+                  plan.participantAssignments.length
+                "
+              >
+                <span
+                  v-for="(pt, idx) in plan.participantAssignments"
+                  :key="pt.id"
+                >
+                  {{ pt.name || pt.email
+                  }}<span v-if="idx < plan.participantAssignments.length - 1"
+                    >,
+                  </span>
+                </span>
+              </span>
+              <span v-else>-</span>
+            </template>
+          </p>
           <p class="plan-week">
             <strong>Неделя:</strong>
             <template v-if="editing[plan.id]?.isEditing">
@@ -146,14 +179,7 @@
               </button>
               <button
                 class="btn delete-btn"
-                @click="
-                  openModal(
-                    'Удалить план',
-                    'Вы действительно хотите удалить этот план?',
-                    'Удалить',
-                    () => deletePlan(plan)
-                  )
-                "
+                @click="deletePlan(plan)"
                 :disabled="loadingPlan"
               >
                 Удалить
@@ -175,9 +201,9 @@
 import { ref, onMounted } from "vue";
 import { useRouter } from "#imports";
 import { useUser } from "~/composables/useUser";
-import { Body } from "#components";
+import Multiselect from "vue-multiselect";
+import "vue-multiselect/dist/vue-multiselect.css";
 
-// Интерфейсы
 interface Group {
   id: number;
   name: string;
@@ -195,20 +221,29 @@ interface TrainingPlan {
   details: string;
   groupId?: number | null;
   group?: Group | null;
+  participantAssignments?: { id: number; name: string | null; email: string }[];
   active: boolean;
   exercises: Exercise[];
   plannedFor: string; // ISO строка
+}
+
+interface Participant {
+  id: number;
+  name: string | null;
+  email: string;
+  groups?: Group[];
 }
 
 const router = useRouter();
 const { user, fetchUser } = useUser();
 const plans = ref<TrainingPlan[]>([]);
 const groupsList = ref<Group[]>([]);
+const participantsList = ref<Participant[]>([]);
 const error = ref("");
 const message = ref("");
 const loadingPlan = ref(false);
 
-// Объект для режима редактирования плана
+// Режим редактирования плана
 const editing = ref<{
   [planId: number]: {
     isEditing: boolean;
@@ -216,6 +251,7 @@ const editing = ref<{
     groupId: number | null;
     exercises: Exercise[];
     weekType: string; // "current", "next"
+    participantIds: number[];
   };
 }>({});
 
@@ -230,7 +266,6 @@ const daysOfWeek = [
   { value: "Sunday", label: "Воскресенье" },
 ];
 
-// Словарь для перевода дней
 const daysMap: Record<string, string> = {
   Monday: "Понедельник",
   Tuesday: "Вторник",
@@ -243,7 +278,6 @@ const daysMap: Record<string, string> = {
 const getRussianDay = (englishDay: string): string =>
   daysMap[englishDay] || englishDay;
 
-// Функция определения типа недели на основе plannedFor
 function determineWeekType(plannedFor: string): string {
   const planDate = new Date(plannedFor);
   const now = new Date();
@@ -270,6 +304,39 @@ function getWeekLabel(plannedFor: string): string {
   return "Устарел";
 }
 
+// Фильтрация участников: если выбрана группа, исключаем участников этой группы
+function filteredParticipants(planId: number): Participant[] {
+  const selectedGroupId = editing.value[planId]?.groupId;
+  if (!selectedGroupId) return participantsList.value;
+  return participantsList.value.filter((pt) => {
+    return !(pt.groups && pt.groups.some((grp) => grp.id === selectedGroupId));
+  });
+}
+
+async function fetchPlans() {
+  const token = localStorage.getItem("token");
+  if (!token) {
+    router.push("/login");
+    return;
+  }
+  try {
+    const data = await $fetch("/api/coach/training-plans", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    plans.value = data.map((plan: any) => ({
+      ...plan,
+      participantAssignments: plan.participantAssignments || [],
+      exercises: Array.isArray(plan.exercises)
+        ? plan.exercises
+        : plan.exercises || [],
+    }));
+    await Promise.all(plans.value.map((plan) => fetchExercisesForPlan(plan)));
+    console.log("Преобразованные планы:", plans.value);
+  } catch (err) {
+    error.value = "Ошибка загрузки планов";
+  }
+}
+
 async function fetchExercisesForPlan(plan: TrainingPlan) {
   const token = localStorage.getItem("token");
   if (!token) {
@@ -289,31 +356,6 @@ async function fetchExercisesForPlan(plan: TrainingPlan) {
   }
 }
 
-async function fetchPlans() {
-  const token = localStorage.getItem("token");
-  if (!token) {
-    router.push("/login");
-    return;
-  }
-  try {
-    const data = await $fetch("/api/coach/training-plans", {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    console.log("Полученные планы:", data);
-    plans.value = data.map((plan: any) => ({
-      ...plan,
-      exercises: Array.isArray(plan.exercises)
-        ? plan.exercises
-        : plan.exercises || [],
-    }));
-    // Для каждого плана подтягиваем упражнения
-    await Promise.all(plans.value.map((plan) => fetchExercisesForPlan(plan)));
-    console.log("Преобразованные планы:", plans.value);
-  } catch (err) {
-    error.value = "Ошибка загрузки планов";
-  }
-}
-
 async function fetchGroups() {
   const token = localStorage.getItem("token");
   if (!token) {
@@ -327,6 +369,22 @@ async function fetchGroups() {
     groupsList.value = data;
   } catch (err) {
     error.value = "Ошибка загрузки групп";
+  }
+}
+
+async function fetchParticipants() {
+  const token = localStorage.getItem("token");
+  if (!token) {
+    router.push("/login");
+    return;
+  }
+  try {
+    const data = await $fetch("/api/coach/participants", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    participantsList.value = data;
+  } catch (err) {
+    error.value = "Ошибка загрузки участников";
   }
 }
 
@@ -360,7 +418,8 @@ async function deletePlan(plan: TrainingPlan) {
     router.push("/login");
     return;
   }
-
+  if (!window.confirm(`Вы действительно хотите удалить план ID ${plan.id}?`))
+    return;
   loadingPlan.value = true;
   try {
     await $fetch(`/api/coach/training-plan/${plan.id}`, {
@@ -380,6 +439,9 @@ function editPlan(plan: TrainingPlan) {
     isEditing: true,
     dayOfWeek: plan.dayOfWeek,
     groupId: plan.group ? plan.group.id : null,
+    participantIds: plan.participantAssignments
+      ? plan.participantAssignments.map((p: any) => p.id)
+      : [],
     exercises: plan.exercises ? JSON.parse(JSON.stringify(plan.exercises)) : [],
     weekType: determineWeekType(plan.plannedFor),
   };
@@ -414,6 +476,8 @@ async function savePlan(plan: TrainingPlan) {
   const updatedGroupId = editing.value[plan.id].groupId;
   const updatedExercises = editing.value[plan.id].exercises;
   const updatedWeekType = editing.value[plan.id].weekType;
+  // Сохраняем индивидуальные назначения вне зависимости от группы
+  const updatedParticipantIds = editing.value[plan.id].participantIds;
   loadingPlan.value = true;
   console.log("Сохраняем план", {
     planId: plan.id,
@@ -421,6 +485,7 @@ async function savePlan(plan: TrainingPlan) {
     groupId: updatedGroupId,
     exercises: updatedExercises,
     weekType: updatedWeekType,
+    participantIds: updatedParticipantIds,
   });
   try {
     await $fetch("/api/coach/update-training-plan", {
@@ -435,19 +500,11 @@ async function savePlan(plan: TrainingPlan) {
         groupId: updatedGroupId,
         exercises: updatedExercises,
         weekType: updatedWeekType,
+        participantIds: updatedParticipantIds,
       },
     });
     await fetchPlans();
     editing.value[plan.id].isEditing = false;
-    openModal(
-      "Успех",
-      `План #${
-        plan.id
-      } успешно обновлен:\nНагрузка   Упражнение${updatedExercises.map(
-        (ex: any) => `\n${ex.load} ${ex.exercise}`
-      )}`,
-      "Oтлично"
-    );
   } catch (err) {
     error.value = "Ошибка при обновлении плана";
   } finally {
@@ -458,10 +515,14 @@ async function savePlan(plan: TrainingPlan) {
 onMounted(() => {
   fetchPlans();
   fetchGroups();
+  fetchParticipants();
 });
 </script>
 
 <style scoped lang="scss">
+@import "@/assets/styles/collection/_colors.scss";
+
+/* Стили для кастомных дропдаунов */
 .custom-select {
   appearance: none;
   -webkit-appearance: none;
@@ -543,7 +604,8 @@ onMounted(() => {
 
       .plan-group,
       .plan-status,
-      .plan-week {
+      .plan-week,
+      .plan-participants {
         font-size: 0.9rem;
         margin-bottom: 10px;
       }
@@ -566,7 +628,6 @@ onMounted(() => {
             border: 1px solid var(--pl-border);
             padding: 8px;
             text-align: left;
-            /* Добавляем перенос слов в ячейках */
             white-space: normal;
             overflow-wrap: break-word;
           }
@@ -580,13 +641,13 @@ onMounted(() => {
           display: flex;
           gap: 10px;
           margin-bottom: 10px;
+
           .exercise-input {
             flex: 1;
             padding: 5px;
             border: 1px solid var(--pl-border);
             border-radius: 4px;
             font-size: 0.9rem;
-            /* Добавляем перенос слов в полях ввода */
             white-space: normal;
             overflow-wrap: break-word;
           }

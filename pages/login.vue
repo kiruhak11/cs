@@ -1,28 +1,73 @@
 <template>
   <div class="auth-container">
     <div class="card">
-      <h1 class="title">Вход</h1>
-      <form @submit.prevent="handleLogin" class="form">
-        <div class="form-group">
-          <label for="email">Email</label>
-          <input id="email" type="email" v-model="form.email" required />
-        </div>
-        <div class="form-group">
-          <label for="password">Пароль</label>
-          <input
-            id="password"
-            type="password"
-            v-model="form.password"
-            required
-          />
-        </div>
-        <button type="submit" class="btn">Войти</button>
-      </form>
-      <p class="info-note">
-        Если вы не тренер, логин и пароль необходимо получить у вашего тренера.
-      </p>
-      <div v-if="error" class="error">{{ error }}</div>
-      <div v-if="token" class="success">Вход выполнен</div>
+      <div class="switch-buttons">
+        <h1
+          :class="!switchToLogin ? 'title-active' : 'title-unactive'"
+          @click="switchToLogin = false"
+        >
+          Регистрация
+        </h1>
+        <h1
+          :class="switchToLogin ? 'title-active' : 'title-unactive'"
+          @click="switchToLogin = true"
+        >
+          Вход
+        </h1>
+      </div>
+      <div class="form-login" v-if="switchToLogin">
+        <form @submit.prevent="handleLogin" class="form">
+          <div class="form-group">
+            <label for="email">Email</label>
+            <input id="email" type="email" v-model="formL.email" required />
+          </div>
+          <div class="form-group">
+            <label for="password">Пароль</label>
+            <input
+              id="password"
+              type="password"
+              v-model="formL.password"
+              required
+            />
+          </div>
+          <button type="submit" class="btn">Войти</button>
+        </form>
+        <p class="info-note">
+          Если вы не тренер, логин и пароль необходимо получить у вашего
+          тренера.
+        </p>
+        <div v-if="error" class="error">{{ error }}</div>
+        <div v-if="token" class="success">Вход выполнен</div>
+      </div>
+      <div class="form-register" v-else>
+        <form @submit.prevent="handleRegister" class="form">
+          <div class="form-group">
+            <label for="email">Email</label>
+            <input id="email" type="email" v-model="formR.email" required />
+          </div>
+          <div class="form-group">
+            <label for="password">Пароль</label>
+            <input
+              id="password"
+              type="password"
+              v-model="formR.password"
+              required
+            />
+          </div>
+          <div class="form-group">
+            <label for="name">Имя</label>
+            <input id="name" type="text" v-model="formR.name" required />
+          </div>
+          <button type="submit" class="btn submit-btn">
+            Зарегистрироваться
+          </button>
+        </form>
+        <div v-if="success" class="success">Регистрация прошла успешно</div>
+        <div v-if="error" class="error">{{ error }}</div>
+        <p class="info-note">
+          <NuxtLink to="/FAQ">О сайте</NuxtLink>
+        </p>
+      </div>
     </div>
   </div>
 </template>
@@ -31,13 +76,29 @@
 import { ref } from "vue";
 import { useRouter } from "vue-router";
 
+const switchToLogin = ref<Boolean>(false);
+const switchToRegister = ref<Boolean>(true);
+
+interface RegisterForm {
+  email: string;
+  password: string;
+  name: string;
+}
+const success = ref(false);
+
+const formR = ref<RegisterForm>({
+  email: "",
+  password: "",
+  name: "",
+});
+
 interface LoginForm {
   email: string;
   password: string;
 }
 const router = useRouter();
 
-const form = ref<LoginForm>({
+const formL = ref<LoginForm>({
   email: "",
   password: "",
 });
@@ -52,7 +113,7 @@ async function handleLogin() {
   try {
     const response = await $fetch("/api/auth/login", {
       method: "POST",
-      body: form.value,
+      body: formL.value,
     });
     if ("error" in response) {
       error.value = response.error;
@@ -64,6 +125,28 @@ async function handleLogin() {
     }
   } catch (err) {
     error.value = "Ошибка входа";
+  }
+}
+
+async function handleRegister() {
+  error.value = "";
+  success.value = false;
+  try {
+    const response = await $fetch("/api/auth/register", {
+      method: "POST",
+      body: formR.value,
+    });
+    if ("error" in response && response.error) {
+      error.value = response.error;
+    } else {
+      success.value = true;
+      if ("token" in response && response.token) {
+        localStorage.setItem("token", response.token);
+        router.push("/");
+      }
+    }
+  } catch (err) {
+    error.value = "Ошибка регистрации";
   }
 }
 </script>
@@ -92,13 +175,26 @@ async function handleLogin() {
     box-shadow: 0 6px 12px var(--pl-box-shadow-hover);
   }
 }
-
+.switch-buttons {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+}
 .title {
-  font-size: 2rem;
-  margin-bottom: 20px;
-  color: var(--pl-primary);
-  text-transform: uppercase;
-  letter-spacing: 1px;
+  &-active {
+    margin-bottom: 20px;
+    color: var(--pl-primary);
+    border-bottom: 1px solid var(--pl-primary);
+    letter-spacing: 1px;
+    cursor: pointer;
+  }
+  &-unactive {
+    margin-bottom: 20px;
+    color: var(--pl-primary);
+    letter-spacing: 1px;
+    cursor: pointer;
+  }
 }
 
 .form {
