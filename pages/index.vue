@@ -13,7 +13,7 @@
             <div class="plan-header">
               <span class="plan-day">{{ daysMap[plan.dayOfWeek] }}</span>
             </div>
-            <div class="plan-body">
+            <div class="plan-body" v-if="!isSwapped">
               <p class="plan-details">{{ plan.details }}</p>
               <!-- Если у плана есть упражнения, выводим их в виде таблицы -->
               <div
@@ -31,6 +31,29 @@
                     <tr v-for="exercise in plan.exercises" :key="exercise.id">
                       <td>{{ exercise.load }}</td>
                       <td>{{ exercise.exercise }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div class="plan-body" v-else>
+              <p class="plan-details">{{ plan.details }}</p>
+              <!-- Если у плана есть упражнения, выводим их в виде таблицы -->
+              <div
+                v-if="plan.exercises && plan.exercises.length"
+                class="exercises"
+              >
+                <table class="exercises-table">
+                  <thead>
+                    <tr>
+                      <th>Упражнение</th>
+                      <th>Нагрузка</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="exercise in plan.exercises" :key="exercise.id">
+                      <td>{{ exercise.exercise }}</td>
+                      <td>{{ exercise.load }}</td>
                     </tr>
                   </tbody>
                 </table>
@@ -93,7 +116,7 @@ interface TrainingPlan {
   exercises: Exercise[];
 }
 
-const { user, fetchUser } = useUser();
+const { user, fetchUser, isSwapped } = useUser();
 const router = useRouter();
 const loading = ref(true);
 const trainingPlans = ref<TrainingPlan[]>([]);

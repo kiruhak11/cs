@@ -41,12 +41,28 @@
               {{ plan.group ? plan.group.name : "-" }}
             </template>
           </p>
+          <p class="plan-week">
+            <strong>Неделя:</strong>
+            <template v-if="editing[plan.id]?.isEditing">
+              <select class="custom-select" v-model="editing[plan.id].weekType">
+                <option value="current">Текущая неделя</option>
+                <option value="next">Следующая неделя</option>
+              </select>
+            </template>
+            <template v-else>
+              {{ getWeekLabel(plan.plannedFor) }}
+            </template>
+          </p>
+          <p class="plan-status">
+            <strong>Статус:</strong> {{ plan.active ? "Активен" : "Отключен" }}
+          </p>
+          <!-- Блок индивидуальных назначений -->
           <p class="plan-participants">
             <strong>Индивидуальные участники:</strong>
             <template v-if="editing[plan.id]?.isEditing">
               <Multiselect
-                v-model="editing[plan.id].participantIds"
-                :options="filteredParticipants(plan.id)"
+                v-model="editing[plan.id].participantObjects"
+                :options="participantsList"
                 :multiple="true"
                 track-by="id"
                 label="name"
@@ -73,21 +89,6 @@
               </span>
               <span v-else>-</span>
             </template>
-          </p>
-          <p class="plan-week">
-            <strong>Неделя:</strong>
-            <template v-if="editing[plan.id]?.isEditing">
-              <select class="custom-select" v-model="editing[plan.id].weekType">
-                <option value="current">Текущая неделя</option>
-                <option value="next">Следующая неделя</option>
-              </select>
-            </template>
-            <template v-else>
-              {{ getWeekLabel(plan.plannedFor) }}
-            </template>
-          </p>
-          <p class="plan-status">
-            <strong>Статус:</strong> {{ plan.active ? "Активен" : "Отключен" }}
           </p>
           <!-- Блок упражнений -->
           <div class="exercises-section">
@@ -126,7 +127,7 @@
             </template>
             <template v-else>
               <div v-if="plan.exercises && plan.exercises.length">
-                <table class="exercises-table">
+                <table class="exercises-table" v-if="!isSwapped">
                   <thead>
                     <tr>
                       <th>Нагрузка</th>
@@ -140,6 +141,23 @@
                     >
                       <td>{{ exercise.load }}</td>
                       <td>{{ exercise.exercise }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+                <table class="exercises-table" v-else>
+                  <thead>
+                    <tr>
+                      <th>Упражнение</th>
+                      <th>Нагрузка</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr
+                      v-for="(exercise, idx) in plan.exercises"
+                      :key="exercise.id || idx"
+                    >
+                      <td>{{ exercise.exercise }}</td>
+                      <td>{{ exercise.load }}</td>
                     </tr>
                   </tbody>
                 </table>
@@ -194,6 +212,9 @@
     </div>
     <div v-if="error" class="error">{{ error }}</div>
     <div v-if="message" class="message">{{ message }}</div>
+    <NuxtLink to="/coach/create-training-plan" class="create-plan-link">
+      Создать тренировочный план
+    </NuxtLink>
   </div>
 </template>
 
@@ -235,7 +256,7 @@ interface Participant {
 }
 
 const router = useRouter();
-const { user, fetchUser } = useUser();
+const { user, fetchUser, isSwapped, loading, swapColumns } = useUser();
 const plans = ref<TrainingPlan[]>([]);
 const groupsList = ref<Group[]>([]);
 const participantsList = ref<Participant[]>([]);
@@ -251,11 +272,10 @@ const editing = ref<{
     groupId: number | null;
     exercises: Exercise[];
     weekType: string; // "current", "next"
-    participantIds: number[];
+    participantObjects: Participant[];
   };
 }>({});
 
-// Опции для дней недели
 const daysOfWeek = [
   { value: "Monday", label: "Понедельник" },
   { value: "Tuesday", label: "Вторник" },
@@ -435,13 +455,16 @@ async function deletePlan(plan: TrainingPlan) {
 }
 
 function editPlan(plan: TrainingPlan) {
+  // Преобразуем существующие индивидуальные назначения в объекты из participantsList
+  const currentParticipants = plan.participantAssignments || [];
+  const selectedParticipants = participantsList.value.filter((pt) =>
+    currentParticipants.some((p: any) => p.id === pt.id)
+  );
   editing.value[plan.id] = {
     isEditing: true,
     dayOfWeek: plan.dayOfWeek,
     groupId: plan.group ? plan.group.id : null,
-    participantIds: plan.participantAssignments
-      ? plan.participantAssignments.map((p: any) => p.id)
-      : [],
+    participantObjects: selectedParticipants,
     exercises: plan.exercises ? JSON.parse(JSON.stringify(plan.exercises)) : [],
     weekType: determineWeekType(plan.plannedFor),
   };
@@ -476,8 +499,10 @@ async function savePlan(plan: TrainingPlan) {
   const updatedGroupId = editing.value[plan.id].groupId;
   const updatedExercises = editing.value[plan.id].exercises;
   const updatedWeekType = editing.value[plan.id].weekType;
-  // Сохраняем индивидуальные назначения вне зависимости от группы
-  const updatedParticipantIds = editing.value[plan.id].participantIds;
+  // Преобразуем объекты участников в массив числовых ID
+  const updatedParticipantIds = editing.value[plan.id].participantObjects.map(
+    (pt) => pt.id
+  );
   loadingPlan.value = true;
   console.log("Сохраняем план", {
     planId: plan.id,
@@ -516,12 +541,26 @@ onMounted(() => {
   fetchPlans();
   fetchGroups();
   fetchParticipants();
+  swapColumns();
 });
 </script>
 
 <style scoped lang="scss">
-@import "@/assets/styles/collection/_colors.scss";
-
+.create-plan-link {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  margin-top: 20px;
+  padding: 10px 20px;
+  background-color: var(--pl-primary);
+  color: #fff;
+  text-decoration: none;
+  border-radius: 8px;
+  transition: background-color 0.3s ease;
+  &:hover {
+    background-color: var(--pl-primary-hover);
+  }
+}
 /* Стили для кастомных дропдаунов */
 .custom-select {
   appearance: none;
@@ -566,7 +605,6 @@ onMounted(() => {
     border: 1px solid var(--pl-border);
     border-radius: 8px;
     box-shadow: 0 2px 4px var(--pl-box-shadow);
-    overflow: hidden;
     transition: transform 0.3s ease, box-shadow 0.3s ease;
     display: flex;
     flex-direction: column;
@@ -712,7 +750,7 @@ onMounted(() => {
         }
 
         .delete-btn {
-          background-color: var(--pl-link);
+          background-color: var(--pl-danger);
           color: #fff;
           &:hover {
             background-color: var(--pl-link-hover);

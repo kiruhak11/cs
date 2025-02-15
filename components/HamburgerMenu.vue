@@ -35,15 +35,6 @@
               <NuxtLink class="link" to="/">Главная</NuxtLink>
             </li>
             <li><NuxtLink to="/coach/dashboard">Панель тренера</NuxtLink></li>
-            <li>
-              <NuxtLink to="/coach/create-training-plan">Создать план</NuxtLink>
-            </li>
-            <li>
-              <NuxtLink to="/coach/groups">Список групп</NuxtLink>
-            </li>
-            <li>
-              <NuxtLink to="/coach/create-group">Создать группу</NuxtLink>
-            </li>
             <li><NuxtLink to="/account">Личный кабинет</NuxtLink></li>
           </ul>
           <ul v-else-if="useUser().user?.value?.role === 'PARTICIPANT'">

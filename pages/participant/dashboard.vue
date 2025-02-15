@@ -12,7 +12,7 @@
           <div class="plan-header">
             <span class="plan-day">{{ getRussianDay(plan.dayOfWeek) }}</span>
           </div>
-          <div class="plan-body">
+          <div class="plan-body" v-if="!isSwapped">
             <p class="plan-details">{{ plan.details }}</p>
             <!-- Таблица упражнений -->
             <div
@@ -30,6 +30,29 @@
                   <tr v-for="exercise in plan.exercises" :key="exercise.id">
                     <td>{{ exercise.load }}</td>
                     <td>{{ exercise.exercise }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="plan-body" v-else>
+            <p class="plan-details">{{ plan.details }}</p>
+            <!-- Таблица упражнений -->
+            <div
+              v-if="plan.exercises && plan.exercises.length"
+              class="exercises"
+            >
+              <table class="exercises-table">
+                <thead>
+                  <tr>
+                    <th>Упражнение</th>
+                    <th>Нагрузка</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="exercise in plan.exercises" :key="exercise.id">
+                    <td>{{ exercise.exercise }}</td>
+                    <td>{{ exercise.load }}</td>
                   </tr>
                 </tbody>
               </table>
@@ -67,7 +90,7 @@ interface TrainingPlan {
   exercises: Exercise[];
 }
 
-const { user, fetchUser } = useUser();
+const { user, fetchUser, isSwapped, swapColumns } = useUser();
 const router = useRouter();
 const activeTab = ref<"general" | "today">("general");
 const trainingPlans = ref<TrainingPlan[]>([]);
@@ -162,6 +185,7 @@ async function submitAchievement() {
 onMounted(() => {
   fetchUser();
   fetchTrainingPlans();
+  swapColumns();
 });
 </script>
 

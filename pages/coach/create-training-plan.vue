@@ -17,7 +17,7 @@
       <textarea id="details" v-model="form.details" required></textarea>
 
       <h2>Упражнения</h2>
-      <table class="exercises-table">
+      <table class="exercises-table" v-if="!isSwapped">
         <thead>
           <tr>
             <th>Нагрузка</th>
@@ -40,6 +40,35 @@
                 v-model="row.exercise"
                 @input="checkLastRow"
                 placeholder="Упражнение"
+              />
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <table class="exercises-table" v-else>
+        <thead>
+          <tr>
+            <th>Упражнение</th>
+            <th>Нагрузка</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="(row, index) in exercises" :key="index">
+            <td>
+              <input
+                type="text"
+                v-model="row.exercise"
+                @input="checkLastRow"
+                placeholder="Упражнение"
+              />
+            </td>
+            <td>
+              <input
+                type="text"
+                v-model="row.load"
+                @input="checkLastRow"
+                placeholder="Нагрузка"
               />
             </td>
           </tr>
@@ -117,7 +146,7 @@ const exercises = ref<{ load: string; exercise: string }[]>([
 const message = ref("");
 const error = ref("");
 const router = useRouter();
-
+const { isSwapped, swapColumns } = useUser();
 function checkLastRow() {
   const lastRow = exercises.value[exercises.value.length - 1];
   if (lastRow.load.trim() !== "" && lastRow.exercise.trim() !== "") {
@@ -195,6 +224,7 @@ onMounted(() => {
   }
   fetchParticipants();
   fetchGroups();
+  swapColumns();
 });
 </script>
 

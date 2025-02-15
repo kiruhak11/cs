@@ -19,7 +19,12 @@ export interface User {
 const user = ref<User | null>(null);
 const loading = ref(false);
 const error = ref("");
-
+const isSwapped = ref(false);
+export function swapColumns() {
+  localStorage.getItem("swapColumns") === "true"
+    ? (isSwapped.value = true)
+    : (isSwapped.value = false);
+}
 export function openModal(
   modalTitle: string,
   modalText: string,
@@ -73,5 +78,5 @@ export function useUser() {
     user.value = newUser;
   }
 
-  return { user, loading, error, fetchUser, setUser };
+  return { user, loading, error, fetchUser, setUser, isSwapped, swapColumns };
 }

@@ -4,33 +4,75 @@
     <div v-if="loading" class="loading">
       <p>Загрузка данных...</p>
     </div>
-    <div v-else-if="user" class="account-card">
-      <div class="user-info">
-        <p><strong>Email:</strong> {{ user.email }}</p>
-        <p v-if="user.username">
-          <strong>Username:</strong> {{ user.username }}
-        </p>
-        <p v-if="user.name"><strong>Имя:</strong> {{ user.name }}</p>
-        <p v-if="user.role">
-          <strong>Роль:</strong>
-          {{ user.role === "COACH" ? "Тренер" : "Участник" }}
-        </p>
-        <p v-if="user.role === 'PARTICIPANT'">
-          <strong>Тренер:</strong> {{ coachName() }}
-        </p>
+    <div v-else>
+      <!-- Кнопки переключения между разделами -->
+      <div class="switch-btn">
+        <button
+          @click="activeSection = 'profile'"
+          :class="activeSection === 'profile' ? 'active' : 'unactive'"
+          class="right"
+        >
+          Профиль
+        </button>
+        <button
+          @click="activeSection = 'settings'"
+          :class="activeSection === 'settings' ? 'active' : 'unactive'"
+          class="left"
+        >
+          Настройки
+        </button>
+      </div>
+
+      <!-- Раздел "Профиль" -->
+      <div v-if="user && activeSection === 'profile'" class="account-card">
+        <div class="user-info">
+          <p><strong>Email:</strong> {{ user.email }}</p>
+          <p v-if="user.username">
+            <strong>Username:</strong> {{ user.username }}
+          </p>
+          <p v-if="user.name"><strong>Имя:</strong> {{ user.name }}</p>
+          <p v-if="user.role">
+            <strong>Роль:</strong>
+            {{ user.role === "COACH" ? "Тренер" : "Участник" }}
+          </p>
+          <p v-if="user.role === 'PARTICIPANT'">
+            <strong>Тренер:</strong> {{ coachName() }}
+          </p>
+          <p>
+            <strong>Дата регистрации:</strong>
+            {{ new Date(user.createdAt).toLocaleString() }}
+          </p>
+        </div>
+        <button @click="handleLogout" class="logout-btn">Выйти</button>
+      </div>
+
+      <!-- Раздел "Настройки" -->
+      <div
+        v-else-if="user && activeSection === 'settings'"
+        class="account-card"
+      >
+        <h2>Настройки</h2>
+        <div class="settings-option">
+          <label>
+            <input
+              type="checkbox"
+              v-model="swapColumns"
+              @change="saveSettings"
+            />
+            Поменять порядок столбцов в таблице упражнений ("Нагрузка" и
+            "Упражнение")
+          </label>
+        </div>
+      </div>
+
+      <!-- Гость -->
+      <div v-else class="guest">
         <p>
-          <strong>Дата регистрации:</strong>
-          {{ new Date(user.createdAt).toLocaleString() }}
+          Пользователь не аутентифицирован.
+          <NuxtLink to="/login">Войдите</NuxtLink> или
+          <NuxtLink to="/register">зарегистрируйтесь</NuxtLink>.
         </p>
       </div>
-      <button @click="handleLogout" class="logout-btn">Выйти</button>
-    </div>
-    <div v-else class="guest">
-      <p>
-        Пользователь не аутентифицирован.
-        <NuxtLink to="/login">Войдите</NuxtLink> или
-        <NuxtLink to="/register">зарегистрируйтесь</NuxtLink>.
-      </p>
     </div>
     <div v-if="error" class="error">{{ error }}</div>
   </div>
@@ -43,6 +85,21 @@ import { useUser } from "~/composables/useUser";
 
 const { user, loading, error, fetchUser } = useUser();
 const router = useRouter();
+const activeSection = ref<"profile" | "settings">("profile");
+
+// Настройка для смены порядка столбцов в таблице упражнений
+const swapColumns = ref<boolean>(false);
+
+function loadSettings() {
+  const stored = localStorage.getItem("swapColumns");
+  if (stored !== null) {
+    swapColumns.value = stored === "true";
+  }
+}
+
+function saveSettings() {
+  localStorage.setItem("swapColumns", swapColumns.value.toString());
+}
 
 // Реф для данных тренера
 const coach = ref<{ id: number; name: string } | null>(null);
@@ -51,7 +108,6 @@ async function fetchCoach() {
   if (user.value && user.value.coachId) {
     const token = localStorage.getItem("token");
     try {
-      // Предполагаем, что API для получения тренера по ID доступен по маршруту /api/coach/[id]
       const data = await $fetch(`/api/coach/${user.value.coachId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -74,7 +130,7 @@ function handleLogout() {
 
 onMounted(async () => {
   await fetchUser();
-  // Если пользователь-участник, пытаемся получить данные тренера
+  loadSettings();
   if (user.value && user.value.role === "PARTICIPANT" && user.value.coachId) {
     await fetchCoach();
   }
@@ -98,9 +154,34 @@ onMounted(async () => {
     letter-spacing: 1px;
   }
 
-  .loading {
-    text-align: center;
-    font-size: 1.2rem;
+  .switch-btn {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+
+    button {
+      flex: 1;
+      padding: 10px;
+      border: 1px solid var(--pl-border);
+      background: var(--pl-background);
+      color: var(--pl-text);
+      cursor: pointer;
+      transition: background 0.3s;
+      &.right {
+        border-radius: 25px 0 0 25px;
+      }
+      &.left {
+        border-radius: 0 25px 25px 0;
+      }
+      &.active {
+        background: var(--pl-accent);
+        color: #fff;
+      }
+      &.unactive {
+        background: var(--pl-background);
+        color: var(--pl-text);
+      }
+    }
   }
 
   .account-card {
@@ -126,13 +207,24 @@ onMounted(async () => {
       }
     }
 
+    .settings-option {
+      margin: 20px 0;
+      label {
+        font-size: 1rem;
+        cursor: pointer;
+        input {
+          margin-right: 10px;
+        }
+      }
+    }
+
     .logout-btn {
       display: block;
       width: 100%;
       margin-top: 20px;
       padding: 12px;
       font-size: 1rem;
-      background-color: var(--pl-accent);
+      background-color: var(--pl-danger);
       color: #fff;
       border: none;
       border-radius: 6px;
@@ -148,7 +240,6 @@ onMounted(async () => {
   .guest {
     text-align: center;
     font-size: 1.2rem;
-
     a {
       color: var(--pl-link);
       font-weight: bold;
@@ -159,6 +250,11 @@ onMounted(async () => {
         color: var(--pl-link-hover);
       }
     }
+  }
+
+  .loading {
+    text-align: center;
+    font-size: 1.2rem;
   }
 
   .error {
